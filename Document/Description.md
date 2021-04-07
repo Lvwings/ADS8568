@@ -54,9 +54,9 @@
 | ------- | ------------------------ | --------- | ---------------- |
 | tCVH    | CONVST_x高电平时间       | >tCCLK    | 200ns            |
 | tFSCV   | FS结束到下一次CONVST时间 | > 40ns    |                  |
-| tBUFS   | BUSY低电平到FS低电平     | > 86ns    | 128ns            |
-| tSCLK   | SCLK时钟                 | 0.1~45MHz | 31.25MHz         |
-| tFSSCLK | FS下降沿到SCLK下降沿时间 | >12ns     | 16+（tSCLK/2）ns |
+| tBUFS   | BUSY低电平到FS低电平     | > 86ns    | 100ns            |
+| tSCLK   | SCLK时钟                 | 0.1~45MHz | 40MHz            |
+| tFSSCLK | FS下降沿到SCLK下降沿时间 | >12ns     | 10+（tSCLK/2）ns |
 
 ## 状态参数
 
@@ -96,6 +96,28 @@ INT信号在一个新通道转换完成拉高，直到下一次转换开始拉�
 
 # 4设计
 
+## 片间连线
+
 采用多片级联，SCLK、CONVST、FS全部捆绑，所有BUSY通过或门得到总的BUSY信号，那么与FPGA的交互线总计9条：
 
 <img src="Description.assets/image-20210325153351679.png" alt="image-20210325153351679" style="zoom:67%;" />
+
+SDI作为备用信号口，用于配置AD的寄存器，若功能无法正常运行时进行测试使用。
+
+## 单次采样
+
+串行单次采样时序设计：
+
+![image-20210406170515743](Description.assets/image-20210406170515743.png)
+
+数据采样点设置在sclk的下降沿前一个时钟，数据相对稳定。
+
+## 级联采样
+
+硬件之间连接简图如下
+
+![image-20210407115817641](Description.assets/image-20210407115817641.png)
+
+采用16片AD一组，两组分别采样探测器的奇偶通道，将数据上传给FPGA。级联之后数据的时序如下
+
+![image-20210407135045414](Description.assets/image-20210407135045414.png)
