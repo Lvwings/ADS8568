@@ -6,7 +6,7 @@
           {name:'busy',       wave: '0.1|.0........................',                          period: 1},
           {name:'fs',         wave: '1..|..0.....................1.',                          period: 1},
           {name:'ad1_a',    wave: 'x......3....4....5.|..6....x..',        data: ["CH1","CH9", "","CH249"],   period: 1},
-          {name:'ad1_b',    wave: 'x......3....4....5.|..6....x..',        data: ["CH5","CH11","","CH251"],   period: 1},
+          {name:'ad1_b',    wave: 'x......3....4....5.|..6....x..',        data: ["CH3","CH11","","CH251"],   period: 1},
           {name:'ad1_c',    wave: 'x......3....4....5.|..6....x..',        data: ["CH5","CH13","","CH253"],   period: 1},
           {name:'ad1_d',    wave: 'x......3....4....5.|..6....x..',        data: ["CH7","CH15","","CH255"],   period: 1},
           {name:'ad0_a',    wave: 'x......7....8....9.|..2....x..',        data: ["CH0","CH8", "","CH248"],   period: 1},
