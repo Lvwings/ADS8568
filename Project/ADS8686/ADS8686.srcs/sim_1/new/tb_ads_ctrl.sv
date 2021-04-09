@@ -74,7 +74,7 @@ module tb_ADS_CTRL (); /* this is automatically generated */
 	logic        sdi;
 	logic  [3:0] sdo;
 	logic        data_valid;
-	logic [31:0] ad_data;
+	logic [63:0] ad_data;
 
 	ADS_CTRL inst_ADS_CTRL
 		(

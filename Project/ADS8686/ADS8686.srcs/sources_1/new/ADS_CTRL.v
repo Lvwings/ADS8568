@@ -4,7 +4,7 @@
 // Author : wings
 // File   : ADS_CTRL.v
 // Create : 2021-04-07 14:13:12
-// Revise : 2021-04-08 12:07:14
+// Revise : 2021-04-09 13:45:45
 // Editor : sublime text3, tab size (4)
 // Revision:
 // Revision 0.01 - File Created
@@ -29,7 +29,7 @@ module ADS_CTRL (
 
 	//	data transfer
 	output	data_valid,
-	output	[31:0]	ad_data	//	with 2 channel data per time
+	output	[63:0]	ad_data	//	with 2 channel data per time
 	
 );
 
@@ -43,12 +43,13 @@ module ADS_CTRL (
 	reg			sclk_n		=	1'b1;	
 
 	reg			valid		=	1'b0;
-	reg	[31:0]	data		=	0;
+	reg	[63:0]	data		=	0;
 	
 	assign		convst		=	o_convst;
 	assign		reset		=	o_reset;
 	assign		fs_n		=	o_fs_n;
 	assign		sclk		=	sclk_p & sclk_n;
+	assign		sdi			=	0;
 
 	assign		data_valid	=	valid;
 	assign		ad_data		=	data;
@@ -201,14 +202,14 @@ module ADS_CTRL (
 									sdod	<=	sdod;				
 								end
 
-								//	channel cnt
+								//	channel cnt		one sample for 4 channel
 								if (bit_cnt == 15 && time_cnt == 1)	
-									channel_cnt	<=	channel_cnt + 1;									
+									channel_cnt	<=	channel_cnt + 4;									
 								else
 									channel_cnt	<=	channel_cnt;
 
 								//	fsn
-								o_fs_n	<=	(channel_cnt == 127 && bit_cnt == 15 && time_cnt == 0) ? 1 : o_fs_n;
+								o_fs_n	<=	(channel_cnt == 124 && bit_cnt == 15 && time_cnt == 0) ? 1 : o_fs_n;
 
 								flag_read_over	<=	(channel_cnt == 128);
 				end
@@ -286,13 +287,10 @@ module ADS_CTRL (
 		if(sys_rst) begin
 			 
 		end else begin
-			 if (bit_cnt == 0 && (|channel_cnt)) begin
-			 	case (time_cnt)
-			 		8'd2	:	begin data	<=	{sdoa,sdob};	valid	<=	1;	end
-			 		8'd3	:	begin data	<=	{sdoc,sdod};	valid	<=	1;	end
-			 		default : 	begin data	<=	0;				valid	<=	0;	end
-			 	endcase
-			 end
+			 if (bit_cnt == 0 && (|channel_cnt) && (time_cnt == 2)) begin
+			 	 data	<=	{sdoa,sdob,sdoc,sdod};
+			 	 valid	<=	1;
+			 end	 
 			 else begin
 			 	data	<=	0;
 			 	valid	<=	0;
