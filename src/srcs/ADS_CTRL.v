@@ -4,7 +4,7 @@
 // Author : wings
 // File   : ADS_CTRL.v
 // Create : 2021-04-07 14:13:12
-// Revise : 2021-04-09 13:45:45
+// Revise : 2021-04-23 16:15:49
 // Editor : sublime text3, tab size (4)
 // Revision:
 // Revision 0.01 - File Created
@@ -63,7 +63,7 @@ module ADS_CTRL (
 									READ 			= 4'd4,
 									TIME_OUT 		= 4'd5;						
 	//	use one-hot encode									
-    reg [5:0]                       state			=   0,
+       (* keep="true" *) reg [5:0]                       state			=   0,
     								next			=   0;					
 //********************************************************************
 // trigger control signals

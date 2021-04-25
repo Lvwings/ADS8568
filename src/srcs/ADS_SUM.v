@@ -108,7 +108,7 @@ module ADS_SUM#(
 	localparam	[2:0]			RECEIVE 		=	0,
 								FIFO		=	1;
 
-	reg	[1:0]					fifo_state		=	0,
+	   (* keep="true" *) reg	[1:0]					fifo_state		=	0,
 								fifo_next		=	0;
 	reg	[3:0]					fifo_cnt		=	0;
 	reg							flag_trans_one	=	1'b0;							
@@ -313,7 +313,7 @@ module ADS_SUM#(
 									M_WRITE_RESPONSE = 4'd3,
 									M_WRITE_TIME_OUT = 4'd4;								
 	//	use one-hot encode								
-    reg [4:0]                       m_write_state      =   0,
+      (* keep="true" *) reg [4:0]                       m_write_state      =   0,
 									m_write_next       =   0;
 
 	reg [WATCH_DOG_WIDTH : 0]       m_wt_watch_dog_cnt	=   0;      
@@ -487,10 +487,7 @@ module ADS_SUM#(
 			if (flag_trans_complete)
 				m_wd_wdata	<=	ad_sum;
 			else begin 
-				if (r_fifo_valid)
-					m_wd_wdata	<=	r_fifo_data;
-				else
-					m_wd_wdata	<=	m_wd_wdata;
+				m_wd_wdata	<=	r_fifo_data;
 			end			
 		else begin 
 			m_wd_wdata	<=	0;				 	
@@ -500,7 +497,7 @@ module ADS_SUM#(
 	//	m_wd_wvalid
 	always @(posedge sys_clk) begin		 
 		 if (m_write_state[M_WRITE_DATA] && m_write_next[M_WRITE_DATA]) begin 
-		 	m_wd_wvalid	<=	flag_trans_complete ? 1 : r_fifo_valid;	 				//	user setting
+		 	m_wd_wvalid	<=	1;	 				//	user setting
 		 end 
 		 else begin 
 		 	m_wd_wvalid	<=	0;				 	

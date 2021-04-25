@@ -345,6 +345,8 @@ module tb_ADS_TOP (); /* this is automatically generated */
 			maxi_wd_wready	<=	(valid_cnt == 3);
 		end
 	end	*/
-	assign	maxi_wd_wready	=	maxi_wd_wvalid;
+	always_ff @(posedge clk) begin
+		maxi_wd_wready	<=	maxi_wd_wvalid;
+	end
 endmodule
 
