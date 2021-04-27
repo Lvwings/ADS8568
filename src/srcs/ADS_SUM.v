@@ -469,16 +469,16 @@ module ADS_SUM#(
 	end
 
 	//	r_fifo_valid
-	always @(posedge sys_clk) begin
-		if (m_write_next[M_WRITE_DATA] && !flag_trans_complete && !r_fifo_empty)
-			if (maxi_wd_wvalid && maxi_wd_wready)
-				o_rfifo_valid	<=	1;
-			else if (m_write_data_cnt == maxi_wlen)
-				o_rfifo_valid	<=	1;
+	always @(*) begin
+		if (m_write_next[M_WRITE_DATA] && !flag_trans_complete)
+			if (maxi_wd_wvalid && maxi_wd_wready && !maxi_wd_wlast)
+				o_rfifo_valid	=	1;
+			else if (m_write_data_cnt == maxi_wlen && !maxi_wd_wvalid)
+				o_rfifo_valid	=	1;
 			else
-				o_rfifo_valid	<=	0;
+				o_rfifo_valid	=	0;
 		else
-			o_rfifo_valid	<=	0;
+			o_rfifo_valid	=	0;
 	end
 
 	//	m_wd_wdata
@@ -487,7 +487,10 @@ module ADS_SUM#(
 			if (flag_trans_complete)
 				m_wd_wdata	<=	ad_sum;
 			else begin 
-				m_wd_wdata	<=	r_fifo_data;
+				if (r_fifo_valid)
+					m_wd_wdata	<=	r_fifo_data;
+				else
+					m_wd_wdata	<=	m_wd_wdata;
 			end			
 		else begin 
 			m_wd_wdata	<=	0;				 	
@@ -507,7 +510,12 @@ module ADS_SUM#(
 	//	m_wd_wlast
 	always @(posedge sys_clk) begin		 
 		 if (m_write_state[M_WRITE_DATA] && m_write_next[M_WRITE_DATA]) begin 
-		 	m_wd_wlast	<=	(maxi_wlen == 0) ? 1 : (m_write_data_cnt == 1);	 				//	user setting
+		 	if (maxi_wlen == 0)										//	user setting					
+		 		m_wd_wlast	<=	1;
+		 	else if (m_write_data_cnt == 1 && maxi_wd_wready)
+		 		m_wd_wlast	<=	1;
+		 	else
+		 		m_wd_wlast	<=	m_wd_wlast;				
 		 end 
 		 else begin 
 		 	m_wd_wlast	<=	0;				 	

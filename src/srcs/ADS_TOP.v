@@ -4,7 +4,7 @@
 // Author : wings
 // File   : ADS_TOP.v
 // Create : 2021-04-08 13:57:43
-// Revise : 2021-04-09 15:12:37
+// Revise : 2021-04-25 14:37:53
 // Editor : sublime text3, tab size (4)
 // Revision:
 // Revision 0.01 - File Created
@@ -23,7 +23,7 @@ module ADS_TOP #(
     parameter C_AXI_BURST_TYPE  		= 2'b00, 	// 00:FIXED 01:INCR 10:WRAP
     parameter WATCH_DOG_WIDTH  			= 12,
     // Channel parameters
-    parameter C_ADDR_AD2ETH				= 32'h0000_0000,
+    parameter C_ADDR_AD2ETH				= 32'h1000_0000,
     parameter C_ADDR_SUMOFFSET			= 32'h0000_1000
 )(
 	input	sys_clk,    	// Clock	200m

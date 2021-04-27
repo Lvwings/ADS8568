@@ -4,7 +4,7 @@
 // Author : wings
 // File   : ADS_CTRL.v
 // Create : 2021-04-07 14:13:12
-// Revise : 2021-04-23 16:15:49
+// Revise : 2021-04-25 16:27:48
 // Editor : sublime text3, tab size (4)
 // Revision:
 // Revision 0.01 - File Created
@@ -209,9 +209,9 @@ module ADS_CTRL (
 									channel_cnt	<=	channel_cnt;
 
 								//	fsn
-								o_fs_n	<=	(channel_cnt == 124 && bit_cnt == 15 && time_cnt == 0) ? 1 : o_fs_n;
+								o_fs_n	<=	(channel_cnt == 128 && time_cnt == 0);
 
-								flag_read_over	<=	(channel_cnt == 128);
+								flag_read_over	<=	(channel_cnt == 128 && time_cnt == 0);
 				end
 
 				next[RESET]	:	begin 
@@ -287,7 +287,7 @@ module ADS_CTRL (
 		if(sys_rst) begin
 			 
 		end else begin
-			 if (bit_cnt == 0 && (|channel_cnt) && (time_cnt == 2)) begin
+			 if (bit_cnt == 0 && (|channel_cnt) && (time_cnt == 1)) begin
 			 	 data	<=	{sdoa,sdob,sdoc,sdod};
 			 	 valid	<=	1;
 			 end	 

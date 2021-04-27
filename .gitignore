@@ -148,3 +148,6 @@ Project/ADS8686/ADS8686.srcs/component.xml
 Virtual_interface/
 Project/
 IP/
+src/srcs/work/
+xgui/
+component.xml
