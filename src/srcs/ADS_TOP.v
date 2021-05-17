@@ -15,6 +15,8 @@
 
 
 module ADS_TOP #(
+	// AD series number
+	parameter	AD_SERIES_NUMBER		= 4,
 	// AXI parameters
     parameter C_AXI_ID_WIDTH           	= 4, 		// The AXI id width used for read and write // This is an integer between 1-16
     parameter C_AXI_ADDR_WIDTH         	= 32, 		// This is AXI address width for all 		// SI and MI slots
@@ -99,25 +101,11 @@ module ADS_TOP #(
 	wire			w_fifo_full,r_fifo_empty;
 	wire	[15:0]	w_fifo_data;
 	wire	[63:0]	r_fifo_data;
+	wire 			fifo_reset;
 
-	ADS_CTRL inst_ADS1_CTRL
-		(
-			.sys_clk     (sys_clk),
-			.sys_rst     (sys_rst),
-			.trig_convst (trig_convst),
-			.reset       (ad1_reset),
-			.convst      (ad1_convst),
-			.busy        (ad1_busy),
-			.fs_n        (ad1_fs_n),
-			.sclk        (ad1_sclk),
-			.sdi         (ad1_sdi),
-			.sdo         (ad1_sdo),
-			.data_valid  (ad1_valid),
-			.ad_data     (ad1_data)
-		);
-
-	ADS_CTRL inst_ADS2_CTRL
-		(
+	ADS_CTRL #(
+			.AD_SERIES_NUMBER(AD_SERIES_NUMBER)
+		) inst_ADS0_CTRL (
 			.sys_clk     (sys_clk),
 			.sys_rst     (sys_rst),
 			.trig_convst (trig_convst),
@@ -128,11 +116,33 @@ module ADS_TOP #(
 			.sclk        (ad0_sclk),
 			.sdi         (ad0_sdi),
 			.sdo         (ad0_sdo),
-			.data_valid  (ad0_valid),
+			.ad_valid    (ad0_valid),
 			.ad_data     (ad0_data)
 		);
 
+
+
+	ADS_CTRL #(
+			.AD_SERIES_NUMBER(AD_SERIES_NUMBER)
+		) inst_ADS1_CTRL (
+			.sys_clk     (sys_clk),
+			.sys_rst     (sys_rst),
+			.trig_convst (trig_convst),
+			.reset       (ad1_reset),
+			.convst      (ad1_convst),
+			.busy        (ad1_busy),
+			.fs_n        (ad1_fs_n),
+			.sclk        (ad1_sclk),
+			.sdi         (ad1_sdi),
+			.sdo         (ad1_sdo),
+			.ad_valid    (ad1_valid),
+			.ad_data     (ad1_data)
+		);
+
+
+
 	ADS_SUM #(
+			.AD_SERIES_NUMBER(AD_SERIES_NUMBER),
 			.C_AXI_ID_WIDTH(C_AXI_ID_WIDTH),
 			.C_AXI_ADDR_WIDTH(C_AXI_ADDR_WIDTH),
 			.C_AXI_DATA_WIDTH(C_AXI_DATA_WIDTH),
@@ -188,13 +198,14 @@ module ADS_TOP #(
 			.w_fifo_full    (w_fifo_full),
 			.r_fifo_valid   (r_fifo_valid),
 			.r_fifo_data    (r_fifo_data),
-			.r_fifo_empty   (r_fifo_empty)
+			.r_fifo_empty   (r_fifo_empty),
+			.fifo_reset		(fifo_reset)
 		);
 
 
 ad_fifo ad_fifo (
   .clk		(sys_clk),      // input wire clk
-  .srst		(sys_rst),    // input wire srst
+  .srst		(fifo_reset),    // input wire srst
   .din		(w_fifo_data),      // input wire [15 : 0] din
   .wr_en	(w_fifo_valid),  // input wire wr_en
   .rd_en	(r_fifo_valid),  // input wire rd_en

@@ -50,13 +50,13 @@
 
 ## 配置参数
 
-| tCVL    | CONVST_x低电平时间       | > 20ns    |                  |
-| ------- | ------------------------ | --------- | ---------------- |
-| tCVH    | CONVST_x高电平时间       | >tCCLK    | 200ns            |
-| tFSCV   | FS结束到下一次CONVST时间 | > 40ns    |                  |
-| tBUFS   | BUSY低电平到FS低电平     | > 86ns    | 100ns            |
-| tSCLK   | SCLK时钟                 | 0.1~45MHz | 40MHz            |
-| tFSSCLK | FS下降沿到SCLK下降沿时间 | >12ns     | 10+（tSCLK/2）ns |
+| tCVL    | CONVST_x低电平时间       | > 20ns       |                  |
+| ------- | ------------------------ | ------------ | ---------------- |
+| tCVH    | CONVST_x高电平时间       | >tCCLK(85ns) | 1000ns           |
+| tFSCV   | FS结束到下一次CONVST时间 | > 40ns       |                  |
+| tBUFS   | BUSY低电平到FS低电平     | > 86ns       | 1000ns           |
+| tSCLK   | SCLK时钟                 | 0.1~45MHz    | 1MHz             |
+| tFSSCLK | FS下降沿到SCLK下降沿时间 | >12ns        | 10+（tSCLK/2）ns |
 
 ## 状态参数
 

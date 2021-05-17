@@ -43,7 +43,7 @@ module tb_ADS_TOP (); /* this is automatically generated */
 	end
 
 	// (*NOTE*) replace reset, clock, others
-
+	parameter AD_SERIES_NUMBER			= 4;
 	parameter       C_AXI_ID_WIDTH = 4;
 	parameter     C_AXI_ADDR_WIDTH = 32;
 	parameter     C_AXI_DATA_WIDTH = 64;
@@ -290,10 +290,10 @@ module tb_ADS_TOP (); /* this is automatically generated */
 						ad0_sdo[1]	<=	data0[15-bit_cnt];
 						ad0_sdo[2]	<=	data1[15-bit_cnt];
 						ad0_sdo[3]	<=	data1[15-bit_cnt];
-						ad1_sdo[0]	<=	data2[15-bit_cnt];
-						ad1_sdo[1]	<=	data2[15-bit_cnt];
-						ad1_sdo[2]	<=	data3[15-bit_cnt];
-						ad1_sdo[3]	<=	data3[15-bit_cnt];						
+						ad1_sdo[0]	<=	data0[15-bit_cnt];
+						ad1_sdo[1]	<=	data0[15-bit_cnt];
+						ad1_sdo[2]	<=	data1[15-bit_cnt];
+						ad1_sdo[3]	<=	data1[15-bit_cnt];						
 					end
 					else begin 
 						bit_cnt	<=	bit_cnt;
@@ -316,13 +316,13 @@ module tb_ADS_TOP (); /* this is automatically generated */
 						data3		<=	data3;						
 					end
 
-					flag_read_over	<=	(byte_cnt == 32);
+					flag_read_over	<=	(byte_cnt == (AD_SERIES_NUMBER << 1)) && ad0_fs_n;
 			end
 			default : /* default */;
 		endcase
 	end
 
-	reg [9:0]	trig_cnt	=	0;
+	reg [12:0]	trig_cnt	=	0;
 	always_ff @(posedge clk) begin 
 		if (next[IDLE])
 			trig_cnt	<=	trig_cnt + 1;
@@ -345,8 +345,19 @@ module tb_ADS_TOP (); /* this is automatically generated */
 			maxi_wd_wready	<=	(valid_cnt == 3);
 		end
 	end	*/
+	reg ready_r		=	1'b0;
+	reg	[2:0]	ready_cnt	=	0;
 	always_ff @(posedge clk) begin
-		maxi_wd_wready	<=	maxi_wd_wvalid;
+		ready_r			<=	maxi_wd_wvalid;
+		maxi_wd_wready	<=	(ready_cnt == 2);
+
+		if (maxi_wd_wvalid) begin
+			ready_cnt	<=	ready_cnt + 1;
+		end
+		else if (maxi_wd_wready)
+			ready_cnt	<=	0;
+		else
+			ready_cnt	<=	ready_cnt;
 	end
 endmodule
 

@@ -21,6 +21,8 @@
 
 
 module ADS_SUM#(
+	// AD series number
+	parameter AD_SERIES_NUMBER			= 4,	
 	// AXI parameters
     parameter C_AXI_ID_WIDTH           	= 4, 		// The AXI id width used for read and write // This is an integer between 1-16
     parameter C_AXI_ADDR_WIDTH         	= 32, 		// This is AXI address width for all 		// SI and MI slots
@@ -92,9 +94,16 @@ module ADS_SUM#(
 	input								w_fifo_full,
 	output								r_fifo_valid,
 	input	[63:0]						r_fifo_data,
-	input								r_fifo_empty
+	input								r_fifo_empty,
+	output								fifo_reset
     );
-
+//*****************************************************************************
+// local reset
+//*****************************************************************************			
+	reg							local_reset	=	1'b0;
+	always @(posedge sys_clk) begin
+		local_reset	<=	sys_rst;
+	end
 //*****************************************************************************
 // reorder ad data
 // original: 	ad1_data :	{ch1,ch3,ch5,ch7};	ad0_data :	{ch0,ch2,ch4,ch6};
@@ -108,7 +117,7 @@ module ADS_SUM#(
 	localparam	[2:0]			RECEIVE 		=	0,
 								FIFO		=	1;
 
-	   (* keep="true" *) reg	[1:0]					fifo_state		=	0,
+	reg	[1:0]					fifo_state		=	0,
 								fifo_next		=	0;
 	reg	[3:0]					fifo_cnt		=	0;
 	reg							flag_trans_one	=	1'b0;							
@@ -122,12 +131,14 @@ module ADS_SUM#(
 	assign						w_fifo_valid	=	o_wfifo_valid;
 	assign						w_fifo_data		=	o_fifo_data;
 	assign						r_fifo_valid	=	o_rfifo_valid;
+	assign						fifo_reset		=	local_reset;
+
 //********************************************************************
 // state machine
 //********************************************************************
 
 	always @(posedge sys_clk) begin
-		if(sys_rst) begin
+		if(local_reset) begin
 			fifo_state <= 1;
 		end else begin
 			fifo_state	<= fifo_next;
@@ -141,114 +152,108 @@ module ADS_SUM#(
 										fifo_next[FIFO]	=	1;
 									else
 										fifo_next[RECEIVE]	=	1;
-			fifo_state[FIFO]:	if(flag_trans_one)
+			fifo_state[FIFO]:		if(flag_trans_one)
 										fifo_next[RECEIVE]	=	1;
 									else
 										fifo_next[FIFO]	=	1;
 			default : fifo_next[RECEIVE]	=	1;	
-		endcase
-	
+		endcase	
 	end
 
 	always @(posedge sys_clk) begin
-		if (sys_rst) begin
-			ad1_data_r		<=	0;
-			ad0_data_r		<=	0;
-			ad1_valid_r		<=	0;
-			ad0_valid_r		<=	0;		
-		end
-		else begin 
-			case (1)
-				fifo_next[RECEIVE]	:	begin 
-										fifo_cnt       <=  0;
-										flag_trans_one <=  0;
-										o_fifo_data    <=  0;  
-										o_wfifo_valid   <=  0;
-										//	receive ad1	:	suppose ad1 and ad0 exist time deviation
-										if (ad1_valid) begin 
-											ad1_data_r	<=	ad1_data;
-											ad1_valid_r	<=	1;
-										end
-										else begin 
-											ad1_data_r	<=	ad1_data_r;
-											ad1_valid_r	<=	ad1_valid_r;			
-										end
-										//	receive ad0
-										if (ad0_valid) begin 
-											ad0_data_r	<=	ad0_data;
-											ad0_valid_r	<=	1;
-										end
-										else begin 
-											ad0_data_r	<=	ad0_data_r;
-											ad0_valid_r	<=	ad0_valid_r;			
-										end						
-				end
-				fifo_next[FIFO]	:	begin 
-										if (!w_fifo_full)
-											fifo_cnt	<=	fifo_cnt + 1;
-										else
-											fifo_cnt	<=	fifo_cnt;
+		case (1)
+			fifo_next[RECEIVE]	:	begin 
+									fifo_cnt       <=  0;
+									flag_trans_one <=  0;
+									o_fifo_data    <=  0;  
+									o_wfifo_valid   <=  0;
+									//	receive ad1	:	suppose ad1 and ad0 exist time deviation
+									if (ad1_valid) begin 
+										ad1_data_r	<=	ad1_data;
+										ad1_valid_r	<=	1;
+									end
+									else begin 
+										ad1_data_r	<=	ad1_data_r;
+										ad1_valid_r	<=	ad1_valid_r;			
+									end
+									//	receive ad0
+									if (ad0_valid) begin 
+										ad0_data_r	<=	ad0_data;
+										ad0_valid_r	<=	1;
+									end
+									else begin 
+										ad0_data_r	<=	ad0_data_r;
+										ad0_valid_r	<=	ad0_valid_r;			
+									end						
+			end
+			fifo_next[FIFO]	:	begin 
+									if (!w_fifo_full)
+										fifo_cnt	<=	fifo_cnt + 1;
+									else
+										fifo_cnt	<=	fifo_cnt;
 
-										case (fifo_cnt)
-											4'd0	:	begin	o_fifo_data	<=	ad0_data_r[63:48];	o_wfifo_valid	<=	!w_fifo_full;	end
-											4'd1	:	begin	o_fifo_data	<=	ad1_data_r[63:48];	o_wfifo_valid	<=	!w_fifo_full;	end
-											4'd2	:	begin	o_fifo_data	<=	ad0_data_r[47:32];	o_wfifo_valid	<=	!w_fifo_full;	end
-											4'd3	:	begin	o_fifo_data	<=	ad1_data_r[47:32];	o_wfifo_valid	<=	!w_fifo_full;	end
-											4'd4	:	begin	o_fifo_data	<=	ad0_data_r[31:16];	o_wfifo_valid	<=	!w_fifo_full;	end
-											4'd5	:	begin	o_fifo_data	<=	ad1_data_r[31:16];	o_wfifo_valid	<=	!w_fifo_full;	end
-											4'd6	:	begin	o_fifo_data	<=	ad0_data_r[15:00];	o_wfifo_valid	<=	!w_fifo_full;	end
-											4'd7	:	begin	o_fifo_data	<=	ad1_data_r[15:00];	o_wfifo_valid	<=	!w_fifo_full;	
-																flag_trans_one	<=	1;
-																ad1_data_r		<=	0;
-																ad0_data_r		<=	0;
-																ad1_valid_r		<=	0;
-																ad0_valid_r		<=	0;		
-														end	
-											default : 	begin	o_fifo_data	<=	0;	o_wfifo_valid	<=	0; end
-										endcase
-				end
-				default : /* default */;
-			endcase			
-		end
+									case (fifo_cnt)
+										4'd0	:	begin	o_fifo_data	<=	ad0_data_r[63:48];	o_wfifo_valid	<=	!w_fifo_full;	end
+										4'd1	:	begin	o_fifo_data	<=	ad1_data_r[63:48];	o_wfifo_valid	<=	!w_fifo_full;	end
+										4'd2	:	begin	o_fifo_data	<=	ad0_data_r[47:32];	o_wfifo_valid	<=	!w_fifo_full;	end
+										4'd3	:	begin	o_fifo_data	<=	ad1_data_r[47:32];	o_wfifo_valid	<=	!w_fifo_full;	end
+										4'd4	:	begin	o_fifo_data	<=	ad0_data_r[31:16];	o_wfifo_valid	<=	!w_fifo_full;	end
+										4'd5	:	begin	o_fifo_data	<=	ad1_data_r[31:16];	o_wfifo_valid	<=	!w_fifo_full;	end
+										4'd6	:	begin	o_fifo_data	<=	ad0_data_r[15:00];	o_wfifo_valid	<=	!w_fifo_full;	end
+										4'd7	:	begin	o_fifo_data	<=	ad1_data_r[15:00];	o_wfifo_valid	<=	!w_fifo_full;	
+															flag_trans_one	<=	1;
+															ad1_valid_r		<=	0;
+															ad0_valid_r		<=	0;		
+													end	
+										default : 	begin	o_fifo_data	<=	0;	o_wfifo_valid	<=	0; end
+									endcase
+			end
+			default : /* default */;
+		endcase			
 	end
 //*****************************************************************************
 // ad sum
 //*****************************************************************************			
 	reg [7:0]	trans_cnt			=	0;
 	reg			flag_trans_complete	=	1'b0;
-	always @(posedge sys_clk) begin
-		if(sys_rst) begin
-			trans_cnt           <=  0;
-			flag_trans_complete <=  0;
-			ad_sum              <=  0;
-		end else begin
-			//	data trans cnt : 1 trans -> 8 channel
-			 if (maxi_wb_bvalid && maxi_wb_bready)
-			 	trans_cnt           <=  0;
-			 else if (fifo_state[RECEIVE] && fifo_next[FIFO])
-			 	trans_cnt	<=	trans_cnt + 1;
-			 else
-			 	trans_cnt	<=	trans_cnt;
+	localparam	TRANSFER_NUMBER		=	AD_SERIES_NUMBER << 1;
+	reg 		flag_maxi_respond	=	1'b0;
+	//reg 		flag_maxi_data		=	1'b0;
+	//reg		flag_maxi_addr		=	1'b0;
 
-			 //	all channel data completely trans to fifo 
-			 if (maxi_wb_bvalid && maxi_wb_bready)
-			 	flag_trans_complete	<=	0;
-			 else
-			 	flag_trans_complete	<=	(trans_cnt == 32 && flag_trans_one) ? 1 : flag_trans_complete;
-			 
-			 //	ad data sum 
-			 if (maxi_wb_bvalid && maxi_wb_bready)
-			 	ad_sum	<=	0;
-			 else begin 
-			 	if (fifo_next[FIFO])
-			 		if (!fifo_cnt[0]) 	//	even
-			 			ad_sum	<=	ad_sum + ad0_data_r[63 - 16*fifo_cnt[3:1] -: 16];
-			 		else
-			 			ad_sum	<=	ad_sum + ad1_data_r[63 - 16*fifo_cnt[3:1] -: 16];
-			 	else
-			 		ad_sum	<=	ad_sum;
-			 end
-		end
+	always @(posedge sys_clk) begin
+	//	flag_maxi_addr		<=	maxi_waddr && maxi_wready;
+	//	flag_maxi_data		<=	maxi_wd_wvalid && maxi_wd_wready && maxi_wd_wlast;
+		flag_maxi_respond	<=	maxi_wb_bvalid && maxi_wb_bready;
+	end
+
+	always @(posedge sys_clk) begin
+		//	data trans cnt : 1 trans -> 8 channel
+		 if (flag_maxi_respond)
+		 	trans_cnt           <=  0;
+		 else if (fifo_state[RECEIVE] && fifo_next[FIFO])
+		 	trans_cnt	<=	trans_cnt + 1;
+		 else
+		 	trans_cnt	<=	trans_cnt;
+
+		 //	all channel data completely trans to fifo 
+		 if (flag_maxi_respond)
+		 	flag_trans_complete	<=	0;
+		 else
+		 	flag_trans_complete	<=	(trans_cnt == TRANSFER_NUMBER && flag_trans_one) ? 1 : flag_trans_complete;
+		 
+		 //	ad data sum 
+		 if (flag_maxi_respond)
+		 	ad_sum	<=	0;
+		 else begin 
+		 	if (fifo_next[FIFO])
+		 		if (!fifo_cnt[0]) 	//	even
+		 			ad_sum	<=	ad_sum + ad0_data_r[63 - 16*fifo_cnt[3:1] -: 16];
+		 		else
+		 			ad_sum	<=	ad_sum + ad1_data_r[63 - 16*fifo_cnt[3:1] -: 16];
+		 	else
+		 		ad_sum	<=	ad_sum;
+		 end
 	end
 //*****************************************************************************
 // AXI Internal register and wire declarations
@@ -313,7 +318,7 @@ module ADS_SUM#(
 									M_WRITE_RESPONSE = 4'd3,
 									M_WRITE_TIME_OUT = 4'd4;								
 	//	use one-hot encode								
-      (* keep="true" *) reg [4:0]                       m_write_state      =   0,
+    reg [4:0]                       m_write_state      =   0,
 									m_write_next       =   0;
 
 	reg [WATCH_DOG_WIDTH : 0]       m_wt_watch_dog_cnt	=   0;      
@@ -323,17 +328,16 @@ module ADS_SUM#(
 // Write channel control signals
 //*****************************************************************************	
 	always @(posedge sys_clk) begin
-		if(sys_rst) begin
-			trig_m_write_start <= 0;
-		end else begin
+		if (m_write_state[M_WRITE_IDLE])
 			trig_m_write_start <= flag_trans_complete;			//	user setting
-		end
+		else
+			trig_m_write_start <= 0;
 	end
 //*****************************************************************************
 // Write data state machine
 //*****************************************************************************
 	always @(posedge sys_clk) begin
-		if(sys_rst) begin
+		if(local_reset) begin
 			m_write_state <= 1;
 		end else begin
 			m_write_state	<= m_write_next;
@@ -382,14 +386,10 @@ module ADS_SUM#(
 // Watch dog signals
 //*****************************************************************************	
 	always @(posedge sys_clk) begin
-		if(sys_rst) begin
-			 m_wt_watch_dog_cnt	<=	0;
-		end else begin
-			 if (m_write_state != m_write_next)
-			 	m_wt_watch_dog_cnt	<=	0;
-			 else
-			 	m_wt_watch_dog_cnt	<=	m_wt_watch_dog_cnt + 1; 
-		end
+		 if (m_write_state != m_write_next)
+		 	m_wt_watch_dog_cnt	<=	0;
+		 else
+		 	m_wt_watch_dog_cnt	<=	m_wt_watch_dog_cnt + 1; 
 	end
 
 //*****************************************************************************
@@ -409,7 +409,7 @@ module ADS_SUM#(
 
 	//	m_wid
 	always @(posedge sys_clk) begin
-		if(sys_rst) begin
+		if(local_reset) begin
 			 m_wid	<=	0;
 		end else begin
 			 if (m_write_state[M_WRITE_IDLE] && m_write_next[M_WRITE_ADDR])
@@ -420,22 +420,20 @@ module ADS_SUM#(
 	end
 
 	//	m_wlen	:	INCR bursts
+	localparam	AXI_TRANSFER_NUMBER	=	AD_SERIES_NUMBER << 2;
+
 	always @(posedge sys_clk) begin
-		if(sys_rst) begin
-			 m_wlen	<=	0;
-		end else begin
-			 if (m_write_state[M_WRITE_IDLE] && m_write_next[M_WRITE_ADDR])
-			 	m_wlen	<=	flag_trans_complete ? (1 - 1) : (64 - 1);			 			//	user setting
-			 else
-			 	m_wlen	<=	m_wlen;
-		end
+		 if (m_write_state[M_WRITE_IDLE] && m_write_next[M_WRITE_ADDR])
+		 	m_wlen	<=	flag_trans_complete ? (1 - 1) : (AXI_TRANSFER_NUMBER - 1);			 			//	user setting
+		 else
+		 	m_wlen	<=	m_wlen;
 	end	
 
 	//	m_wburst	
 	//	C_AXI_BURST_TYPE :01 INCR bursts :support burst_len max to 256 (default) 	
 	//	C_AXI_BURST_TYPE :10 WRAP bursts :support burst_len 2,4,8,16 				
 	//always @(posedge sys_clk) begin
-	//	if(sys_rst) begin
+	//	if(local_reset) begin
 	//		m_wburst	<=	0;
 	//	end else begin
 	//		m_wburst	<=	C_AXI_BURST_TYPE;	
@@ -469,11 +467,22 @@ module ADS_SUM#(
 	end
 
 	//	r_fifo_valid
+//	always @(posedge sys_clk) begin
+//		if (m_write_next[M_WRITE_DATA] && !flag_trans_complete)
+//			if (maxi_wd_wvalid && maxi_wd_wready && !maxi_wd_wlast)
+//				o_rfifo_valid	<=	1;
+//			else if (m_wt_watch_dog_cnt == 0)	//	second fifo data update
+//				o_rfifo_valid	<=	1;
+//			else
+//				o_rfifo_valid	<=	0;
+//		else
+//			o_rfifo_valid	<=	0;
+//	end
 	always @(*) begin
-		if (m_write_next[M_WRITE_DATA] && !flag_trans_complete)
+		if (m_write_state[M_WRITE_DATA] && !flag_trans_complete)
 			if (maxi_wd_wvalid && maxi_wd_wready && !maxi_wd_wlast)
 				o_rfifo_valid	=	1;
-			else if (m_write_data_cnt == maxi_wlen && !maxi_wd_wvalid)
+			else if (!m_wd_wvalid)	//	second fifo data update
 				o_rfifo_valid	=	1;
 			else
 				o_rfifo_valid	=	0;
@@ -500,7 +509,13 @@ module ADS_SUM#(
 	//	m_wd_wvalid
 	always @(posedge sys_clk) begin		 
 		 if (m_write_state[M_WRITE_DATA] && m_write_next[M_WRITE_DATA]) begin 
-		 	m_wd_wvalid	<=	1;	 				//	user setting
+		 	//if (r_fifo_valid || flag_trans_complete)
+		 	//	m_wd_wvalid	<=	1;	 				//	user setting
+		 	//else if (maxi_wd_wready)
+		 	//	m_wd_wvalid	<=	0;
+		 	//else
+		 	//	m_wd_wvalid	<=	m_wd_wvalid;
+		 	m_wd_wvalid	<=	1;
 		 end 
 		 else begin 
 		 	m_wd_wvalid	<=	0;				 	
@@ -530,8 +545,6 @@ module ADS_SUM#(
 		else
 			m_wd_wstrb	<=	0;
 	end
-
-
 
 	assign	maxi_wd_wdata	=	m_wd_wdata;
 	assign	maxi_wd_wstrb	=	m_wd_wstrb;
